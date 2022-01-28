@@ -1,0 +1,60 @@
+<!-- templates/about/tech.html -->
+
+{% extends "base.html" %}
+{% block title %}Технологии{% endblock %}
+{% block content %}
+  {% load static %}
+  <h1 class="container-fluid-head text-center">Технологии</h1>
+  <div class="container-fluid bg-2 text-center">
+    <h3>Этот сайт создан на основе</h3>
+    <a href="https://www.kinopoisk.ru/film/586397/" target="_blank">
+      <img src="{% static 'img/about/Django.jpg' %}" class="img-circle"
+           width="550" alt="This's Django">
+    </a>
+    <h4>
+      Эксцентричный охотник за головами, также известный как Дантист,
+      промышляет отстрелом самых опасных преступников. Работенка пыльная,
+      и без надежного помощника ему не обойтись. Но как найти такого и
+      желательно не очень дорогого? Освобождённый им раб по имени Джанго –
+      прекрасная кандидатура. Правда, у нового помощника свои мотивы –
+      кое с чем надо сперва разобраться.
+    </h4>
+  </div>
+  <div class="container-fluid bg-1 text-center">
+    <h3>Это была
+      <span class="highlight">шутка
+        <i class="bi bi-emoji-smile"></i>
+      </span>
+    </h3>
+    <h3>На самом деле этот</h3>
+    <img src="{% static 'img/about/Django_logo.svg' %}" class="img-circle"
+         alt="This's Django">
+    <h4>
+      Django — это высокоуровневый Python веб-фреймворк, который позволяет
+      быстро создавать безопасные и поддерживаемые веб-сайты. Созданный
+      опытными разработчиками, Django берёт на себя большую часть хлопот
+      веб-разработки, поэтому вы можете сосредоточиться на написании
+      своего веб-приложения без необходимости изобретать велосипед.
+    </h4>
+  </div>
+  <div class="container-fluid bg-3 text-center">
+    <h3>Мои инструменты</h3>
+    <div class="row">
+      <div class="col-sm-4">
+        <img src="{% static 'img/about/pycharm_icon.png' %}" class="img-tools"
+             alt="Image">
+        <h6>PyCharm</h6>
+      </div>
+      <div class="col-sm-4">
+        <img src="{% static 'img/about/sublime_text.svg' %}" class="img-tools"
+             alt="Image">
+        <h6>Sublime Text 3</h6>
+      </div>
+      <div class="col-sm-4">
+        <img src="{% static 'img/about/vs_code.webp' %}" class="img-tools"
+             alt="Image">
+        <h6>Visual Studio Code</h6>
+      </div>
+    </div>
+  </div>
+{% endblock %}

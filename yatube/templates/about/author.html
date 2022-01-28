@@ -1,0 +1,24 @@
+<!-- templates/about/author.html -->
+
+{% extends "base.html" %}
+{% block title %}Об авторе{% endblock %}
+{% block content %}
+  {% load static %}
+  <h1 class="container-fluid-head text-center">Об авторе</h1>
+  <div class="container-fluid bg-1 text-center">
+    <img src="{% static 'img/about/my_face.png' %}" class="img-circle"
+         alt="I'm">
+    <h3>Владислав</h3>
+  </div>
+  <div class="container-fluid bg-2 text-center">
+    <h4>Я студент 7 когорты Python-разработчик</h4>
+  </div>
+  <div class="container-fluid bg-3 text-center">
+    <h3>Мои проекты</h3>
+    <a href="https://github.com/vasilekx" target="_blank"
+       class="btn bg-1 btn-default btn-lg">
+      <span class="bi bi-github"></span>
+      GitHub
+    </a>
+  </div>
+{% endblock %}

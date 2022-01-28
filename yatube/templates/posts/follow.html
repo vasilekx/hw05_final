@@ -1,0 +1,20 @@
+<!-- templates/posts/follow.html -->
+
+{% extends 'base.html' %}
+{% block title %}Мои подписки{% endblock %}
+{% block content %}
+  {% load thumbnail %}
+  <h1>Мои подписки</h1>
+  {% include 'posts/includes/switcher.html' %}
+  {% load cache %}
+  {% cache 20 index_page follow_obj %}
+    {% for post in page_obj %}
+      {% include 'posts/includes/post_list.html' %}
+      {% if post.group %}
+        <a href="{% url 'posts:group_list' post.group.slug %}">#{{ post.group.title }}</a>
+      {% endif %}
+      {% if not forloop.last %}<hr>{% endif %}
+    {% endfor %}
+  {% endcache %}
+  {% include 'posts/includes/paginator.html' %}
+{% endblock %}
