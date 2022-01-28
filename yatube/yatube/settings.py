@@ -23,9 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'dtui*#_#1fxticqpwgd6a07#419%m#9r$mjhpol*!2cmj2hnje'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True # False
+DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]', 'testserver']  # []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]', 'testserver']
 
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 

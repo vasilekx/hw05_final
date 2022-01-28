@@ -30,4 +30,3 @@ class CommentAdmin(admin.ModelAdmin):
 admin.site.register(Comment, CommentAdmin)
 admin.site.register(Group)
 admin.site.register(Post, PostAdmin)
-

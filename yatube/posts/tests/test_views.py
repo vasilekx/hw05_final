@@ -188,7 +188,7 @@ class PostsViewsTests(TestCase):
         self.assertRedirects(response_follow, PROFILE_URL)
         self.assertEqual(Follow.objects.count(), follow_count)
         response_unfollow = self.another.get(PROFILE_UNFOLLOW_URL)
-        self.assertRedirects(response_follow, PROFILE_URL)
+        self.assertRedirects(response_unfollow, PROFILE_URL)
         self.assertEqual(Follow.objects.count(), follow_count)
 
     def test_page_contains_records(self):

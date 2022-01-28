@@ -47,9 +47,9 @@ def profile(request, username):
     following = False
     if request.user.is_authenticated:
         following = Follow.objects.filter(
-                user=request.user,
-                author__username=username
-            ).exists()
+            user=request.user,
+            author__username=username
+        ).exists()
     return render(request, 'posts/profile.html', {
         'author': author,
         'page_obj': get_paginator_page(request, author.posts.all()),
