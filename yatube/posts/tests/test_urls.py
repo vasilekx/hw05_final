@@ -63,7 +63,6 @@ class StaticURLTests(TestCase):
         cls.REDIRECTS_POST_EDIT_URL = (f'{reverse(settings.LOGIN_URL)}'
                                        f'?next={cls.POST_EDIT_URL}')
 
-
     def test_pages_url_accessible(self):
         """URL-адреса страниц совпадает с ожидаемым доступом."""
         cases = [
@@ -94,7 +93,7 @@ class StaticURLTests(TestCase):
     def test_pages_url_redirect(self):
         """Проверка перенаправлений"""
         url_names = [
-            [POST_CREATE_URL,self.guest,REDIRECTS_POST_CREATE_URL],
+            [POST_CREATE_URL, self.guest, REDIRECTS_POST_CREATE_URL],
             [self.POST_EDIT_URL, self.guest, self.REDIRECTS_POST_EDIT_URL],
             [PROFILE_FOLLOW_URL, self.guest, REDIRECTS_PROFILE_FOLLOW_URL],
             [PROFILE_UNFOLLOW_URL, self.guest, REDIRECTS_PROFILE_UNFOLLOW_URL],

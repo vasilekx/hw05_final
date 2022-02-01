@@ -1,5 +1,5 @@
 # posts/tests/test_forms.py
-import os
+
 import shutil
 import tempfile
 
