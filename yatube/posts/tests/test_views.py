@@ -31,10 +31,11 @@ ANOTHER_GROUP_LIST_URL = reverse('posts:group_list', args=[ANOTHER_GROUP_SLUG])
 PROFILE_URL = reverse('posts:profile', args=[USERNAME])
 PROFILE_FOLLOW_URL = reverse('posts:profile_follow', args=[USERNAME])
 PROFILE_UNFOLLOW_URL = reverse('posts:profile_unfollow', args=[USERNAME])
+PROFILE_AUTH_URL = reverse('posts:profile', args=[USERNAME_AUTH])
+PROFILE_AUTH_FOLLOW_URL = reverse('posts:profile_follow', args=[USERNAME_AUTH])
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
-IMAGE_FILE_NAME = 'small.gif'
-ANOTHER_IMAGE_FILE_NAME = 'small.gif'
+IMAGE_FILE_NAME = 'small1.gif'
 SMALL_GIF = (
     b'\x47\x49\x46\x38\x39\x61\x01\x00'
     b'\x01\x00\x00\x00\x00\x21\xf9\x04'
@@ -49,8 +50,13 @@ class PostsViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user_auth = User.objects.create_user(username=USERNAME_AUTH)
+        cls.guest = Client()
         cls.user = User.objects.create_user(username=USERNAME)
+        cls.author = Client()
+        cls.author.force_login(cls.user)
+        cls.user_auth = User.objects.create_user(username=USERNAME_AUTH)
+        cls.another = Client()
+        cls.another.force_login(cls.user_auth)
         cls.group = Group.objects.create(
             title=GROUP_TITLE,
             slug=GROUP_SLUG,
@@ -72,18 +78,12 @@ class PostsViewsTests(TestCase):
             group=cls.group,
             image=cls.uploaded_file
         )
-        cls.another_post = Post.objects.create(
-            text=POST_TEXT,
-            author=cls.user_auth,
-            group=cls.group,
-            image=cls.uploaded_file
-        )
         cls.comment = Comment.objects.create(
             post=cls.post,
             author=cls.user,
             text=COMMENT_TEXT,
         )
-        cls.follow = Follow.objects.create(user=cls.user, author=cls.user_auth)
+        cls.follow = Follow.objects.create(user=cls.user_auth, author=cls.user)
         cls.POST_DETAIL_URL = reverse('posts:post_detail', args=[cls.post.pk])
 
     @classmethod
@@ -93,51 +93,43 @@ class PostsViewsTests(TestCase):
 
     def setUp(self):
         cache.clear()
-        self.guest = Client()
-        self.another = Client()
-        self.another.force_login(self.user_auth)
-        self.author = Client()
-        self.author.force_login(self.user)
 
     def test_post_show_correct_context_on_different_places(self):
         """Пост появился на соответствующих страницах."""
-        cases_page_names = [
-            [INDEX_URL, 'page_obj', self.post],
-            [FOLLOW_INDEX_URL, 'page_obj', self.another_post],
-            [GROUP_LIST_URL, 'page_obj', self.post],
-            [PROFILE_URL, 'page_obj', self.post],
-            [self.POST_DETAIL_URL, 'post', self.post]
+        cases = [
+            [INDEX_URL, 'page_obj'],
+            [FOLLOW_INDEX_URL, 'page_obj'],
+            [GROUP_LIST_URL, 'page_obj'],
+            [PROFILE_URL, 'page_obj'],
+            [self.POST_DETAIL_URL, 'post']
         ]
-        for url, obj, expected_post in cases_page_names:
-
-            with self.subTest(url=url, obj=obj, expected_post=expected_post):
-                response = self.author.get(url)
+        for url, obj in cases:
+            with self.subTest(url=url, obj=obj):
+                response = self.another.get(url)
                 if obj == 'page_obj':
-                    posts_list = response.context[obj].object_list
-                    self.assertEqual(posts_list.count(expected_post), 1)
-                    post_index = posts_list.index(expected_post)
-                    post = posts_list.pop(post_index)
+                    posts = response.context[obj]
+                    self.assertEqual(len(posts), 1)
+                    post = posts[0]
                 elif obj == 'post':
                     post = response.context[obj]
-                self.assertEqual(post.pk, expected_post.pk)
-                self.assertEqual(post.text, expected_post.text)
-                self.assertEqual(post.author, expected_post.author)
-                self.assertEqual(post.group, expected_post.group)
-                self.assertEqual(post.image, expected_post.image)
+                self.assertEqual(post.pk, self.post.pk)
+                self.assertEqual(post.text, self.post.text)
+                self.assertEqual(post.author, self.post.author)
+                self.assertEqual(post.group, self.post.group)
+                self.assertEqual(post.image, self.post.image)
 
-    def test_post_not_exist_in_other_group(self):
-        """Пост не попал в группу, для которой не был предназначен"""
-        self.assertNotIn(
-            self.post,
-            self.author.get(ANOTHER_GROUP_LIST_URL).context['page_obj']
-        )
-
-    def test_post_not_exist_in_other_follows(self):
-        """Пост не попал в избранное, для которой не был предназначен"""
-        self.assertNotIn(
-            self.post,
-            self.another.get(FOLLOW_INDEX_URL).context['page_obj']
-        )
+    def test_obj_not_exist_in_other_page(self):
+        """Пост не попал на страницу для которой не был предназначен"""
+        cases = [
+            ANOTHER_GROUP_LIST_URL,
+            FOLLOW_INDEX_URL,
+        ]
+        for url in cases:
+            with self.subTest(url=url):
+                self.assertNotIn(
+                    self.post,
+                    self.author.get(url).context['page_obj']
+                )
 
     def test_author_on_profile_page(self):
         """Автор на соответствующей странице"""
@@ -164,46 +156,52 @@ class PostsViewsTests(TestCase):
         self.assertEqual(comment.author, self.comment.author)
         self.assertEqual(comment.text, self.comment.text)
 
-    def test_user_can_follow_and_unfollow(self):
+    def test_user_can_follow(self):
         """Авторизованный пользователь может подписываться на
-        других пользователей и удалять их из подписок"""
+        других пользователей """
         follow_count = Follow.objects.count()
-        all_followers = set(Follow.objects.all())
-        response_follow = self.another.get(PROFILE_FOLLOW_URL)
-        self.assertRedirects(response_follow, PROFILE_URL)
+        self.assertRedirects(self.author.get(PROFILE_AUTH_FOLLOW_URL),
+                             PROFILE_AUTH_URL)
         self.assertEqual(Follow.objects.count(), follow_count + 1)
-        followers = set(Follow.objects.all()) - all_followers
-        self.assertEqual(len(followers), 1)
-        follower = followers.pop()
-        self.assertEqual(follower.user, self.user_auth)
-        self.assertEqual(follower.author, self.user)
-        response_unfollow = self.another.get(PROFILE_UNFOLLOW_URL)
-        self.assertEqual(Follow.objects.count(), follow_count)
-        self.assertRedirects(response_unfollow, PROFILE_URL)
-        self.assertNotIn(follower, Follow.objects.all())
+        self.assertTrue(Follow.objects.filter(user=self.user,
+                                              author=self.user_auth).exists())
 
-    def test_author_cant_follow_and_unfollow_yourself(self):
+    def test_user_can_unfollow(self):
+        """Авторизованный пользователь может удалять других пользователей
+        из подписок"""
         follow_count = Follow.objects.count()
-        response_follow = self.author.get(PROFILE_FOLLOW_URL)
-        self.assertRedirects(response_follow, PROFILE_URL)
+        self.assertRedirects(self.another.get(PROFILE_UNFOLLOW_URL),
+                             PROFILE_URL)
+        self.assertEqual(Follow.objects.count(), follow_count - 1)
+        self.assertFalse(Follow.objects.filter(user=self.user_auth,
+                                               author=self.user).exists())
+
+    def test_author_cant_follow_yourself(self):
+        """Автор не может подписаться на себя."""
+        follow_count = Follow.objects.count()
+        self.assertRedirects(self.author.get(PROFILE_FOLLOW_URL),
+                             PROFILE_URL)
         self.assertEqual(Follow.objects.count(), follow_count)
-        response_unfollow = self.another.get(PROFILE_UNFOLLOW_URL)
-        self.assertRedirects(response_unfollow, PROFILE_URL)
-        self.assertEqual(Follow.objects.count(), follow_count)
+        self.assertFalse(Follow.objects.filter(user=self.user,
+                                               author=self.user).exists())
+
+    def test_author_cant_unfollow_yourself(self):
+        """Автор не может отписаться от себя."""
+        self.assertRedirects(self.author.get(PROFILE_UNFOLLOW_URL),
+                             PROFILE_URL)
+        self.assertIn(self.follow, Follow.objects.all())
 
     def test_page_contains_records(self):
         """Тестирование паджинатора. Количество постов на странице"""
         Post.objects.all().delete()
         num_objects = POSTS_PER_PAGE * 2
         Post.objects.bulk_create(
-            [
-                Post(
-                    text=f'{POST_TEXT}{count}',
-                    author=self.user,
-                    group=self.group
-                )
-                for count in range(num_objects)
-            ]
+            Post(
+                text=f'{POST_TEXT}{count}',
+                author=self.user,
+                group=self.group
+            )
+            for count in range(num_objects)
         )
         cases = [
             [INDEX_URL, POSTS_PER_PAGE],
@@ -219,3 +217,11 @@ class PostsViewsTests(TestCase):
                     len(self.guest.get(address).context['page_obj']),
                     expect
                 )
+
+    def test_cash_index_page(self):
+        """Проверка кеширования главной страницы"""
+        page_content = self.guest.get(INDEX_URL).content
+        Post.objects.all().delete()
+        self.assertEqual(page_content, self.guest.get(INDEX_URL).content)
+        cache.clear()
+        self.assertNotEqual(page_content, self.guest.get(INDEX_URL).content)

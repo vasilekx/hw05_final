@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Post, Group, Comment
+from .models import Post, Group, Comment, Follow
 
 
 class PostAdmin(admin.ModelAdmin):
@@ -27,6 +27,21 @@ class CommentAdmin(admin.ModelAdmin):
     post_pk.short_description = _('Ключ поста')
 
 
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'title', 'slug', 'description')
+    search_fields = ('title', 'slug', 'description')
+    list_filter = ('title',)
+    empty_value_display = '-пусто-'
+
+
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'user', 'author')
+    search_fields = ('user__username', 'author__username')
+    list_filter = ('author',)
+    empty_value_display = '-пусто-'
+
+
+admin.site.register(Follow, FollowAdmin)
 admin.site.register(Comment, CommentAdmin)
-admin.site.register(Group)
+admin.site.register(Group, GroupAdmin)
 admin.site.register(Post, PostAdmin)

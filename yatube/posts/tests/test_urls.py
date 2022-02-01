@@ -20,6 +20,8 @@ GROUP_DESCRIPTION = 'Тестовое описание'
 INDEX_URL = reverse('posts:index')
 FOLLOW_INDEX_URL = reverse('posts:follow_index')
 POST_CREATE_URL = reverse('posts:post_create')
+REDIRECTS_POST_CREATE_URL = (f'{reverse(settings.LOGIN_URL)}'
+                             f'?next={POST_CREATE_URL}')
 GROUP_LIST_URL = reverse('posts:group_list', args=[GROUP_SLUG])
 PROFILE_URL = reverse('posts:profile', args=[USERNAME])
 PROFILE_AUTH_URL = reverse(
@@ -27,7 +29,11 @@ PROFILE_AUTH_URL = reverse(
     args=[USERNAME_AUTH]
 )
 PROFILE_FOLLOW_URL = reverse('posts:profile_follow', args=[USERNAME])
+REDIRECTS_PROFILE_FOLLOW_URL = (f'{reverse(settings.LOGIN_URL)}'
+                                f'?next={PROFILE_FOLLOW_URL}')
 PROFILE_UNFOLLOW_URL = reverse('posts:profile_unfollow', args=[USERNAME])
+REDIRECTS_PROFILE_UNFOLLOW_URL = (f'{reverse(settings.LOGIN_URL)}'
+                                  f'?next={PROFILE_UNFOLLOW_URL}')
 NONEXISTENT_URL = '/nonexistent_page/'
 
 
@@ -35,8 +41,13 @@ class StaticURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user_auth = User.objects.create_user(username=USERNAME_AUTH)
+        cls.guest = Client()
         cls.user = User.objects.create_user(username=USERNAME)
+        cls.author = Client()
+        cls.author.force_login(cls.user)
+        cls.user_auth = User.objects.create_user(username=USERNAME_AUTH)
+        cls.another = Client()
+        cls.another.force_login(cls.user_auth)
         cls.group = Group.objects.create(
             title=GROUP_TITLE,
             slug=GROUP_SLUG,
@@ -49,17 +60,9 @@ class StaticURLTests(TestCase):
         )
         cls.POST_DETAIL_URL = reverse('posts:post_detail', args=[cls.post.pk])
         cls.POST_EDIT_URL = reverse('posts:post_edit', args=[cls.post.pk])
-        cls.COMMENT_CREATE_URL = reverse(
-            'posts:add_comment',
-            args=[cls.post.pk]
-        )
+        cls.REDIRECTS_POST_EDIT_URL = (f'{reverse(settings.LOGIN_URL)}'
+                                       f'?next={cls.POST_EDIT_URL}')
 
-    def setUp(self):
-        self.guest = Client()
-        self.another = Client()
-        self.another.force_login(self.user_auth)
-        self.author = Client()
-        self.author.force_login(self.user)
 
     def test_pages_url_accessible(self):
         """URL-адреса страниц совпадает с ожидаемым доступом."""
@@ -74,12 +77,12 @@ class StaticURLTests(TestCase):
             [self.POST_EDIT_URL, self.another, FOUND],
             [self.POST_EDIT_URL, self.author, OK],
             [NONEXISTENT_URL, self.guest, NOT_FOUND],
-            [self.COMMENT_CREATE_URL, self.guest, FOUND],
-            [self.COMMENT_CREATE_URL, self.another, FOUND],
             [PROFILE_FOLLOW_URL, self.guest, FOUND],
             [PROFILE_FOLLOW_URL, self.another, FOUND],
+            [PROFILE_FOLLOW_URL, self.author, FOUND],
             [PROFILE_UNFOLLOW_URL, self.guest, FOUND],
             [PROFILE_UNFOLLOW_URL, self.another, FOUND],
+            [PROFILE_UNFOLLOW_URL, self.author, FOUND],
         ]
         for url, client, expect in cases:
             with self.subTest(url=url, client=client, expect=expect):
@@ -91,51 +94,15 @@ class StaticURLTests(TestCase):
     def test_pages_url_redirect(self):
         """Проверка перенаправлений"""
         url_names = [
-            [
-                POST_CREATE_URL,
-                self.guest,
-                f'{reverse(settings.LOGIN_URL)}?next={POST_CREATE_URL}'
-            ],
-            [
-                self.POST_EDIT_URL,
-                self.guest,
-                f'{reverse(settings.LOGIN_URL)}?next={self.POST_EDIT_URL}'
-            ],
-            [
-                self.COMMENT_CREATE_URL,
-                self.guest,
-                f'{reverse(settings.LOGIN_URL)}?next={self.COMMENT_CREATE_URL}'
-            ],
-            [
-                PROFILE_FOLLOW_URL,
-                self.guest,
-                f'{reverse(settings.LOGIN_URL)}?next={PROFILE_FOLLOW_URL}'
-            ],
-            [
-                PROFILE_UNFOLLOW_URL,
-                self.guest,
-                f'{reverse(settings.LOGIN_URL)}?next={PROFILE_UNFOLLOW_URL}'
-            ],
-            [
-                PROFILE_FOLLOW_URL,
-                self.another,
-                PROFILE_URL
-            ],
-            [
-                PROFILE_UNFOLLOW_URL,
-                self.another,
-                PROFILE_URL
-            ],
-            [
-                self.COMMENT_CREATE_URL,
-                self.another,
-                self.POST_DETAIL_URL
-            ],
-            [
-                self.POST_EDIT_URL,
-                self.another,
-                PROFILE_AUTH_URL
-            ],
+            [POST_CREATE_URL,self.guest,REDIRECTS_POST_CREATE_URL],
+            [self.POST_EDIT_URL, self.guest, self.REDIRECTS_POST_EDIT_URL],
+            [PROFILE_FOLLOW_URL, self.guest, REDIRECTS_PROFILE_FOLLOW_URL],
+            [PROFILE_UNFOLLOW_URL, self.guest, REDIRECTS_PROFILE_UNFOLLOW_URL],
+            [PROFILE_FOLLOW_URL, self.another, PROFILE_URL],
+            [PROFILE_UNFOLLOW_URL, self.another, PROFILE_URL],
+            [PROFILE_FOLLOW_URL, self.author, PROFILE_URL],
+            [PROFILE_UNFOLLOW_URL, self.author, PROFILE_URL],
+            [self.POST_EDIT_URL, self.another, PROFILE_AUTH_URL],
         ]
         for url, user, redirect in url_names:
             with self.subTest(url=url, user=user, redirect=redirect):
@@ -162,11 +129,3 @@ class StaticURLTests(TestCase):
                     self.author.get(address),
                     template
                 )
-
-    def test_cash_index_page(self):
-        """Проверка кеширования главной страницы"""
-        cache_after = self.guest.get(INDEX_URL).content
-        Post.objects.all().delete()
-        self.assertEqual(cache_after, self.guest.get(INDEX_URL).content)
-        cache.clear()
-        self.assertNotEqual(cache_after, self.guest.get(INDEX_URL).content)

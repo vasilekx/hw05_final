@@ -62,8 +62,7 @@ class Post(CreatedModel):
         blank=True
     )
 
-    class Meta:
-        ordering = ('-created',)
+    class Meta(CreatedModel.Meta):
         verbose_name = _('Пост')
         verbose_name_plural = _('Посты')
 
@@ -91,8 +90,7 @@ class Comment(CreatedModel):
         help_text=_('Текст комментария')
     )
 
-    class Meta:
-        ordering = ('-created',)
+    class Meta(CreatedModel.Meta):
         verbose_name = _('Комментарий')
         verbose_name_plural = _('Комментарии')
 
@@ -121,6 +119,12 @@ class Follow(models.Model):
     class Meta:
         verbose_name = _('Подписка')
         verbose_name_plural = _('Подписки')
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'author'],
+                                    name='unique_relationships'),
+            models.CheckConstraint(check=~models.Q(user=models.F("author")),
+                                   name="prevent_self_follow"),
+        ]
 
     def __str__(self):
         return '{} followed {}'.format(

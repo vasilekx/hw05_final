@@ -5,14 +5,11 @@
 {% block content %}
   {% load thumbnail %}
   <h1>Мои подписки</h1>
-  {% include 'posts/includes/switcher.html' %}
+  {% include 'posts/includes/switcher.html' with follow=True %}
   {% load cache %}
   {% cache 20 index_page follow_obj %}
     {% for post in page_obj %}
-      {% include 'posts/includes/post_list.html' %}
-      {% if post.group %}
-        <a href="{% url 'posts:group_list' post.group.slug %}">#{{ post.group.title }}</a>
-      {% endif %}
+      {% include 'posts/includes/post.html' %}
       {% if not forloop.last %}<hr>{% endif %}
     {% endfor %}
   {% endcache %}

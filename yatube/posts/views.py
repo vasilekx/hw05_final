@@ -40,16 +40,16 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(
-        User.objects.annotate(posts_count=Count('posts')).prefetch_related(
-            'posts__group'),
+        User.objects.annotate(
+            posts_count=Count('posts', distinct=True),
+            comment_count=Count('comments', distinct=True),
+            following_count=Count('following', distinct=True),
+            follower_count=Count('follower', distinct=True)
+        ).prefetch_related('posts__group').prefetch_related('following__user'),
         username=username
     )
-    following = False
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user,
-            author__username=username
-        ).exists()
+    following = (request.user.is_authenticated
+                 and author.following.all().filter(user=request.user).exists())
     return render(request, 'posts/profile.html', {
         'author': author,
         'page_obj': get_paginator_page(request, author.posts.all()),
@@ -136,7 +136,9 @@ def profile_follow(request, username):
 
 @login_required
 def profile_unfollow(request, username):
-    author = get_object_or_404(User, username=username)
-    if request.user != author:
-        Follow.objects.filter(user=request.user, author=author).delete()
+    if request.user.username != username:
+        follow = get_object_or_404(Follow,
+                                   user=request.user,
+                                   author__username=username)
+        follow.delete()
     return redirect('posts:profile', username=username)

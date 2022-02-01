@@ -1,5 +1,6 @@
 # posts/tests/test_models.py
 
+from django.db import IntegrityError
 from django.test import TestCase
 
 from ..models import Group, Post, User, Follow
@@ -108,3 +109,11 @@ class PostModelTest(TestCase):
                     Follow._meta.get_field(value).help_text,
                     expected
                 )
+
+    def test_no_self_follow(self):
+        with self.assertRaisesMessage(IntegrityError, 'prevent_self_follow'):
+            Follow.objects.create(user=self.user, author=self.user)
+
+    def test_one_relationship_exists_between_users(self):
+        with self.assertRaises(IntegrityError):
+            Follow.objects.create(user=self.another_user, author=self.user)
