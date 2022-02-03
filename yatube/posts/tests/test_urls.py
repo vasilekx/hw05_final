@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from ..models import Post, Group, User
+from ..models import Post, Group, User, Follow
 
 USERNAME = 'test_user'
 USERNAME_AUTH = 'test_auth_user'
@@ -58,6 +58,7 @@ class StaticURLTests(TestCase):
             author=cls.user,
             group=cls.group
         )
+        cls.follow = Follow.objects.create(user=cls.user_auth, author=cls.user)
         cls.POST_DETAIL_URL = reverse('posts:post_detail', args=[cls.post.pk])
         cls.POST_EDIT_URL = reverse('posts:post_edit', args=[cls.post.pk])
         cls.REDIRECTS_POST_EDIT_URL = (f'{reverse(settings.LOGIN_URL)}'
@@ -81,7 +82,7 @@ class StaticURLTests(TestCase):
             [PROFILE_FOLLOW_URL, self.author, FOUND],
             [PROFILE_UNFOLLOW_URL, self.guest, FOUND],
             [PROFILE_UNFOLLOW_URL, self.another, FOUND],
-            [PROFILE_UNFOLLOW_URL, self.author, FOUND],
+            [PROFILE_UNFOLLOW_URL, self.author, NOT_FOUND],
         ]
         for url, client, expect in cases:
             with self.subTest(url=url, client=client, expect=expect):
@@ -100,7 +101,6 @@ class StaticURLTests(TestCase):
             [PROFILE_FOLLOW_URL, self.another, PROFILE_URL],
             [PROFILE_UNFOLLOW_URL, self.another, PROFILE_URL],
             [PROFILE_FOLLOW_URL, self.author, PROFILE_URL],
-            [PROFILE_UNFOLLOW_URL, self.author, PROFILE_URL],
             [self.POST_EDIT_URL, self.another, PROFILE_AUTH_URL],
         ]
         for url, user, redirect in url_names:

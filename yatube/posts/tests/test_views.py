@@ -160,8 +160,7 @@ class PostsViewsTests(TestCase):
         """Авторизованный пользователь может подписываться на
         других пользователей """
         follow_count = Follow.objects.count()
-        self.assertRedirects(self.author.get(PROFILE_AUTH_FOLLOW_URL),
-                             PROFILE_AUTH_URL)
+        self.author.get(PROFILE_AUTH_FOLLOW_URL)
         self.assertEqual(Follow.objects.count(), follow_count + 1)
         self.assertTrue(Follow.objects.filter(user=self.user,
                                               author=self.user_auth).exists())
@@ -170,8 +169,7 @@ class PostsViewsTests(TestCase):
         """Авторизованный пользователь может удалять других пользователей
         из подписок"""
         follow_count = Follow.objects.count()
-        self.assertRedirects(self.another.get(PROFILE_UNFOLLOW_URL),
-                             PROFILE_URL)
+        self.another.get(PROFILE_UNFOLLOW_URL)
         self.assertEqual(Follow.objects.count(), follow_count - 1)
         self.assertFalse(Follow.objects.filter(user=self.user_auth,
                                                author=self.user).exists())
@@ -179,16 +177,14 @@ class PostsViewsTests(TestCase):
     def test_author_cant_follow_yourself(self):
         """Автор не может подписаться на себя."""
         follow_count = Follow.objects.count()
-        self.assertRedirects(self.author.get(PROFILE_FOLLOW_URL),
-                             PROFILE_URL)
+        self.author.get(PROFILE_FOLLOW_URL)
         self.assertEqual(Follow.objects.count(), follow_count)
         self.assertFalse(Follow.objects.filter(user=self.user,
                                                author=self.user).exists())
 
     def test_author_cant_unfollow_yourself(self):
         """Автор не может отписаться от себя."""
-        self.assertRedirects(self.author.get(PROFILE_UNFOLLOW_URL),
-                             PROFILE_URL)
+        self.author.get(PROFILE_UNFOLLOW_URL)
         self.assertIn(self.follow, Follow.objects.all())
 
     def test_page_contains_records(self):

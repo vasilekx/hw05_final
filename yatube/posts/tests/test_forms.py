@@ -138,11 +138,13 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(post.text, form_data['text'])
         self.assertEqual(post.group.id, form_data['group'])
         self.assertEqual(post.author, self.user_auth)
-        self.assertEqual(post.image, f"{app_name}/{form_data['image'].name}")
+        self.assertEqual(post.image,
+                         (f"{Post.image.field.upload_to}"
+                          f"{form_data['image'].name}"))
 
     def test_cant_create_post_by_guest(self):
         """Аноним не создает пост."""
-        posts_count = Post.objects.count()
+        all_posts = set(Post.objects.all())
         form_data = {
             'text': POST_TEXT,
             'group': self.group.id,
@@ -157,7 +159,7 @@ class PostCreateFormTests(TestCase):
             response,
             REDIRECTS_POST_CREATE_URL
         )
-        self.assertEqual(Post.objects.count(), posts_count)
+        self.assertFalse(set(Post.objects.all()) - all_posts)
 
     def test_change_post(self):
         """Валидная форма изменяет пост."""
@@ -182,48 +184,32 @@ class PostCreateFormTests(TestCase):
         self.assertEqual(post.image, f"{app_name}/{form_data['image'].name}")
 
     def test_cant_change_post_by_another_author(self):
-        """Пользоветель не изменяет чужой пост."""
-        form_data = {
-            'text': ANOTHER_POST_TEXT,
-            'group': self.another_group.id,
-            'image': self.uploaded_another_file,
-        }
-        response = self.another.post(
-            self.POST_EDIT_URL,
-            data=form_data,
-            follow=True
-        )
-        self.assertRedirects(
-            response,
-            PROFILE_AUTH_URL
-        )
-        post = Post.objects.get(pk=self.post.pk)
-        self.assertEqual(post.text, self.post.text)
-        self.assertEqual(post.group, self.post.group)
-        self.assertEqual(post.author, self.post.author)
-        self.assertEqual(post.image, self.post.image)
-
-    def test_cant_change_post_by_guest(self):
-        """Аноним не изменяет чужой пост."""
-        form_data = {
-            'text': ANOTHER_POST_TEXT,
-            'group': self.another_group.id,
-            'image': self.uploaded_another_file,
-        }
-        response = self.guest.post(
-            self.POST_EDIT_URL,
-            data=form_data,
-            follow=True
-        )
-        self.assertRedirects(
-            response,
-            self.REDIRECTS_POST_EDIT_URL
-        )
-        post = Post.objects.get(pk=self.post.pk)
-        self.assertEqual(post.text, self.post.text)
-        self.assertEqual(post.group, self.post.group)
-        self.assertEqual(post.author, self.post.author)
-        self.assertEqual(post.image, self.post.image)
+        """Пользоветель не являющийся автором не изменяет чужой пост."""
+        cases = [
+            [self.another, PROFILE_AUTH_URL],
+            [self.guest, self.REDIRECTS_POST_EDIT_URL]
+        ]
+        for client, url_redirection in cases:
+            with self.subTest(client=client, url_redirection=url_redirection):
+                form_data = {
+                    'text': ANOTHER_POST_TEXT,
+                    'group': self.another_group.id,
+                    'image': self.uploaded_another_file,
+                }
+                response = client.post(
+                    self.POST_EDIT_URL,
+                    data=form_data,
+                    follow=True
+                )
+                self.assertRedirects(
+                    response,
+                    url_redirection
+                )
+                post = Post.objects.get(pk=self.post.pk)
+                self.assertEqual(post.text, self.post.text)
+                self.assertEqual(post.group, self.post.group)
+                self.assertEqual(post.author, self.post.author)
+                self.assertEqual(post.image, self.post.image)
 
     def test_create_comment(self):
         """Валидная форма создает комментарий."""
@@ -249,7 +235,7 @@ class PostCreateFormTests(TestCase):
 
     def test_cant_create_comment_by_guest(self):
         """Аноним не создает комментарий."""
-        comments_count = Comment.objects.count()
+        all_comments = set(Comment.objects.all())
         form_data = {'text': COMMENT_TEXT}
         response = self.guest.post(
             self.COMMENT_CREATE_URL,
@@ -260,7 +246,7 @@ class PostCreateFormTests(TestCase):
             response,
             self.REDIRECTS_COMMENT_CREATE_URL
         )
-        self.assertEqual(Comment.objects.count(), comments_count)
+        self.assertFalse(set(Comment.objects.all()) - all_comments)
 
     def test_pages_show_correct_context(self):
         """Проверка типов полей формы для создания и редактирование поста
