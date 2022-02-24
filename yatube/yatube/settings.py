@@ -23,9 +23,16 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'dtui*#_#1fxticqpwgd6a07#419%m#9r$mjhpol*!2cmj2hnje'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]', 'testserver']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '[::1]',
+    'testserver',
+    'www.vasilekx.pythonanywhere.com',
+    'vasilekx.pythonanywhere.com',
+]
 
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 
@@ -136,7 +143,9 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 MEDIA_URL = '/media/'
 
